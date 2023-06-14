@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+
+<!--
+SPDX-License-Identifier: Apache-2.0
+SPDX-FileCopyrightText: 2017 Intel Corporation
+SPDX-FileCopyrightText: Czech Technical University in Prague
+
+This is the URDF model for the inertial modules of the
+Intel RealSense 435i camera.
+
+Original file from https://github.com/IntelRealSense/realsense-ros edited by Martin Pecka:
+- rewrote a few links/joints to use macros from utils.xacro
+- all links have non-zero inertia 
+-->
+
+<robot name="gzrs_d435i_imu_modules" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <xacro:include filename="$(find realsense_gazebo)/urdf/utils.xacro" />
+  
+  <xacro:macro name="gzrs_d435i_imu_modules" params="name use_nominal_extrinsics">
+    <xacro:property name="M_PI" value="${pi}" />
+
+    <xacro:if value="${use_nominal_extrinsics}">
+      <xacro:gzrs_empty_link name="${name}_accel_frame" />
+      <xacro:gzrs_empty_link name="${name}_gyro_frame" />
+
+      <xacro:gzrs_fixed_joint name="${name}_accel_joint" parent="${name}_link" child="${name}_accel_frame" lump="0">
+        <origin xyz = "-0.01174 -0.00552 0.0051" rpy = "0 0 0" />
+      </xacro:gzrs_fixed_joint>
+      <xacro:gzrs_optical_frame camera_frame="${name}_accel" />
+
+      <xacro:gzrs_fixed_joint name="${name}_gyro_joint" parent="${name}_link" child="${name}_gyro_frame" lump="0">
+        <origin xyz = "-0.01174 -0.00552 0.0051" rpy = "0 0 0" />
+      </xacro:gzrs_fixed_joint>
+      <xacro:gzrs_optical_frame camera_frame="${name}_gyro" />
+    </xacro:if>
+  </xacro:macro>
+</robot>
+

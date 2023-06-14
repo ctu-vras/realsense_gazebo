@@ -1,0 +1,34 @@
+<!-- 
+SPDX-License-Identifier: BSD-3-Clause
+SPDX-FileCopyrightText: Czech Technical University in Prague
+-->
+<launch>
+    <arg name="camera_name" />
+    <arg name="manager" default="" />
+    <arg name="queue_size" default="10" />
+    <arg name="align_depth" default="true" />
+    <arg name="enable_pointcloud" default="true" />
+
+    <arg name="manager_name" value="$(arg camera_name)_gazebo_proc_manager" if="$(eval manager == '')" />
+    <arg name="manager_name" value="$(arg manager)" if="$(eval manager != '')" />
+    
+    <node name="$(arg camera_name)_extrinsics" pkg="realsense_gazebo" type="extrinsics_pub" args="$(arg camera_name)" respawn="true" />
+    
+    <node name="$(arg manager_name)" pkg="nodelet" type="nodelet" args="manager" respawn="true" if="$(eval manager == '')" />
+
+    <node pkg="nodelet" type="nodelet" name="$(arg camera_name)_register_depth" args="load depth_image_proc/register $(arg manager_name)" respawn="true"
+          if="$(eval align_depth or enable_pointcloud)">
+        <remap from="rgb/camera_info"             to="$(arg camera_name)/color/camera_info" />
+        <remap from="depth/camera_info"           to="$(arg camera_name)/depth/camera_info" />
+        <remap from="depth/image_rect"            to="$(arg camera_name)/depth/image_rect_raw" />
+        <remap from="depth_registered/image_rect" to="$(arg camera_name)/aligned_depth_to_color/image_raw" />
+    </node>
+
+    <node pkg="nodelet" type="nodelet" name="$(arg camera_name)_points_xyzrgb" args="load depth_image_proc/point_cloud_xyzrgb $(arg manager_name)" respawn="true"
+          if="$(arg enable_pointcloud)">
+        <remap from="rgb/image_rect_color"        to="$(arg camera_name)/color/image_raw" />
+        <remap from="rgb/camera_info"             to="$(arg camera_name)/color/camera_info" />
+        <remap from="depth_registered/image_rect" to="$(arg camera_name)/aligned_depth_to_color/image_raw" />
+        <remap from="depth_registered/points"     to="$(arg camera_name)/depth/color/points" />
+    </node>
+</launch>

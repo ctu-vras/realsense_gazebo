@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+
+<!--
+SPDX-License-Identifier: Apache-2.0
+SPDX-FileCopyrightText: 2017 Intel Corporation
+SPDX-FileCopyrightText: Czech Technical University in Prague
+
+This is the URDF model for the Intel RealSense 435i camera, in its
+aluminum peripherial evaluation case.
+
+Original file from https://github.com/IntelRealSense/realsense-ros edited by Martin Pecka:
+- rewrote a few links/joints to use macros from utils.xacro
+- all links have non-zero inertia 
+-->
+
+<robot name="gzrs_sensor_d435i" xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:include filename="$(find realsense_gazebo)/urdf/_d435.urdf.xacro"/>
+  <xacro:include filename="$(find realsense_gazebo)/urdf/_d435i_imu_modules.urdf.xacro"/>
+
+  <xacro:macro name="gzrs_sensor_d435i" params="parent *origin name:=camera use_nominal_extrinsics:=false">
+    <xacro:gzrs_sensor_d435 parent="${parent}" name="${name}" use_nominal_extrinsics="${use_nominal_extrinsics}">
+      <xacro:insert_block name="origin" />
+    </xacro:gzrs_sensor_d435>
+    <xacro:gzrs_d435i_imu_modules name="${name}" use_nominal_extrinsics="${use_nominal_extrinsics}"/>
+  </xacro:macro>
+</robot>
+

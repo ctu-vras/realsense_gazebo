@@ -1,0 +1,197 @@
+<?xml version="1.0"?>
+
+<!--
+SPDX-License-Identifier: BSD-3-Clause
+SPDX-FileCopyrightText: Czech Technical University in Prague
+
+This is the Gazebo URDF model extension for Intel RealSense D400 series cameras.
+-->
+
+<robot xmlns:xacro="http://ros.org/wiki/xacro">
+    <xacro:arg name="rendering_target" default="urdf" /> <!-- Pass either "urdf", "sdf" of "sdf-classic" to tell the parser what is the desired target format. -->
+
+    <xacro:macro name="realsense_gazebo" params="camera_name model:=d435
+        enable_color:=true color_width:=848 color_height:=480 color_fps:=30
+        enable_depth:=true depth_width:=848 depth_height:=480 depth_fps:=30
+        enable_infra:=true infra_width:=848 infra_height:=480 infra_fps:=30
+        image_near_clip:=0.1 image_far_clip:=100
+        depth_far_clip_override:=0.0
+        visualize_color:=false visualize_depth:=false visualize_infra:=false" >
+        <xacro:if value="${model == 'd435' or model == 'd435i'}">
+            <xacro:property name="color_hfov" value="${radians(69)}" />
+            <xacro:property name="depth_hfov" value="${radians(87)}" />
+            <xacro:property name="depth_near_clip" value="0.28" />
+            <xacro:if value="${depth_far_clip_override != 0.0}">
+                <xacro:property name="depth_far_clip" value="${depth_far_clip_override}" />
+            </xacro:if>
+            <xacro:if value="${depth_far_clip_override == 0.0}">
+                <xacro:property name="depth_far_clip" value="3.0" />
+            </xacro:if>
+        </xacro:if>
+        <xacro:if value="${model == 'd415'}">
+            <xacro:property name="color_hfov" value="${radians(69)}" />
+            <xacro:property name="depth_hfov" value="${radians(65)}" />
+            <xacro:property name="depth_near_clip" value="0.45" />
+            <xacro:if value="${depth_far_clip_override != 0.0}">
+                <xacro:property name="depth_far_clip" value="${depth_far_clip_override}" />
+            </xacro:if>
+            <xacro:if value="${depth_far_clip_override == 0.0}">
+                <xacro:property name="depth_far_clip" value="3.0" />
+            </xacro:if>
+        </xacro:if>
+        <xacro:if value="${model == 'd455'}">
+            <xacro:property name="color_hfov" value="${radians(90)}" />
+            <xacro:property name="depth_hfov" value="${radians(87)}" />
+            <xacro:property name="depth_near_clip" value="0.52" />
+            <xacro:if value="${depth_far_clip_override != 0.0}">
+                <xacro:property name="depth_far_clip" value="${depth_far_clip_override}" />
+            </xacro:if>
+            <xacro:if value="${depth_far_clip_override == 0.0}">
+                <xacro:property name="depth_far_clip" value="6.0" />
+            </xacro:if>
+        </xacro:if>
+        
+        <xacro:if value="${enable_color}">
+            <gazebo reference="${camera_name}_color_frame">
+                <sensor name="${camera_name}_color" type="camera">
+                    <camera name="${camera_name}">
+                        <horizontal_fov>${color_hfov}</horizontal_fov>
+                        <image>
+                            <width>${color_width}</width>
+                            <height>${color_height}</height>
+                            <format>RGB_INT8</format>
+                        </image>
+                        <clip>
+                            <near>${image_near_clip}</near>
+                            <far>${image_far_clip}</far>
+                        </clip>
+                        <noise>
+                            <type>gaussian</type>
+                            <mean>0.0</mean>
+                            <stddev>0.007</stddev>
+                        </noise>
+                    </camera>
+                    <update_rate>${color_fps}</update_rate>
+                    <xacro:if value="${visualize_color}">
+                        <visualize>1</visualize>
+                    </xacro:if>
+                    <xacro:if value="${'$(arg rendering_target)' == 'sdf-classic'}">
+                        <plugin name="${camera_name}" filename="libgazebo_ros_camera.so">
+                            <robotNamespace>${camera_name}</robotNamespace>
+                            <cameraName>color</cameraName>
+                            <imageTopicName>image_raw</imageTopicName>
+                            <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+                            <frameName>/${camera_name}_color_optical_frame</frameName>
+                        </plugin>
+                    </xacro:if>
+                </sensor>
+            </gazebo>
+        </xacro:if>
+        <xacro:if value="${enable_infra}">
+            <gazebo reference="${camera_name}_infra1_frame">
+                <sensor name="${camera_name}_ired1" type="camera">
+                    <camera name="${camera_name}">
+                        <horizontal_fov>${depth_hfov}</horizontal_fov>
+                        <image>
+                            <width>${infra_width}</width>
+                            <height>${infra_height}</height>
+                            <format>L_INT8</format>
+                        </image>
+                        <clip>
+                            <near>${image_near_clip}</near>
+                            <far>${image_far_clip}</far>
+                        </clip>
+                        <noise>
+                            <type>gaussian</type>
+                            <mean>0.0</mean>
+                            <stddev>0.005</stddev>
+                        </noise>
+                    </camera>
+                    <update_rate>${infra_fps}</update_rate>
+                    <xacro:if value="${visualize_infra}">
+                        <visualize>1</visualize>
+                    </xacro:if>
+                    <xacro:if value="${'$(arg rendering_target)' == 'sdf-classic'}">
+                        <plugin name="${camera_name}_ired1" filename="libgazebo_ros_camera.so">
+                            <robotNamespace>${camera_name}</robotNamespace>
+                            <cameraName>infra1</cameraName>
+                            <imageTopicName>image_rect_raw</imageTopicName>
+                            <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+                            <frameName>/${camera_name}_infra1_optical_frame</frameName>
+                        </plugin>
+                    </xacro:if>
+                </sensor>
+            </gazebo>
+            <gazebo reference="${camera_name}_infra2_frame">
+                <sensor name="${camera_name}_ired2" type="camera">
+                    <camera name="${camera_name}">
+                        <horizontal_fov>${depth_hfov}</horizontal_fov>
+                        <image>
+                            <width>${infra_width}</width>
+                            <height>${infra_height}</height>
+                            <format>L_INT8</format>
+                        </image>
+                        <clip>
+                            <near>${image_near_clip}</near>
+                            <far>${image_far_clip}</far>
+                        </clip>
+                        <noise>
+                            <type>gaussian</type>
+                            <mean>0.0</mean>
+                            <stddev>0.005</stddev>
+                        </noise>
+                    </camera>
+                    <update_rate>${infra_fps}</update_rate>
+                    <xacro:if value="${visualize_infra}">
+                        <visualize>1</visualize>
+                    </xacro:if>
+                    <xacro:if value="${'$(arg rendering_target)' == 'sdf-classic'}">
+                        <plugin name="${camera_name}_ired2" filename="libgazebo_ros_camera.so">
+                            <robotNamespace>${camera_name}</robotNamespace>
+                            <cameraName>infra2</cameraName>
+                            <imageTopicName>image_rect_raw</imageTopicName>
+                            <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+                            <frameName>/${camera_name}_infra2_optical_frame</frameName>
+                        </plugin>
+                    </xacro:if>
+                </sensor>
+            </gazebo>
+        </xacro:if>
+        <xacro:if value="${enable_depth}">
+            <gazebo reference="${camera_name}_depth_frame">
+                <sensor name="${camera_name}_depth" type="depth">
+                    <camera name="${camera_name}">
+                        <horizontal_fov>${depth_hfov}</horizontal_fov>
+                        <image>
+                            <width>${depth_width}</width>
+                            <height>${depth_height}</height>
+                        </image>
+                        <clip>
+                            <near>${depth_near_clip}</near>
+                            <far>${depth_far_clip}</far>
+                        </clip>
+                        <noise>
+                            <type>gaussian</type>
+                            <mean>0.0</mean>
+                            <stddev>0.1</stddev>
+                        </noise>
+                    </camera>
+                    <xacro:if value="${'$(arg rendering_target)' == 'sdf-classic'}">
+                        <plugin name="${camera_name}_depth" filename="libgzrs_depth_camera.so">
+                            <robotNamespace>${camera_name}</robotNamespace>
+                            <cameraName>depth</cameraName>
+                            <imageTopicName>image_rect_raw</imageTopicName>
+                            <cameraInfoTopicName>camera_info</cameraInfoTopicName>
+                            <frameName>/${camera_name}_depth_optical_frame</frameName>
+                            <useDepth16UC1Format>false</useDepth16UC1Format>
+                        </plugin>
+                    </xacro:if>
+                    <update_rate>${depth_fps}</update_rate>
+                    <xacro:if value="${visualize_depth}">
+                        <visualize>1</visualize>
+                    </xacro:if>
+                </sensor>
+            </gazebo>
+        </xacro:if>
+    </xacro:macro>
+</robot>

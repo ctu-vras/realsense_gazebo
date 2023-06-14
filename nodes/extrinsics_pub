@@ -1,0 +1,99 @@
+#!/usr/bin/env python
+
+# SPDX-License-Identifier: BSD-3-Clause
+# SPDX-FileCopyrightText: Czech Technical University in Prague
+
+"""
+Publish `Extrinsics` messages for simulated realsense camera.
+
+Usage:
+  extrinsics_pub CAMERA_NAME
+
+The extrinsics are read from TFs.
+"""
+
+import sys
+
+from realsense2_camera.msg import Extrinsics
+import rospy
+from tf.transformations import quaternion_matrix
+from tf2_ros import Buffer, TransformException, TransformListener
+
+
+rospy.init_node("extrinsics_pub")
+
+argv = rospy.myargv()
+
+if len(argv) < 2:
+    rospy.logfatal("You must pass the camera name as argument.")
+    sys.exit(1)
+
+camera = argv[1]
+
+tf = Buffer()
+listener = TransformListener(tf)
+
+depth_frame = camera + "_depth_optical_frame"
+color_frame = camera + "_color_optical_frame"
+infra1_frame = camera + "_infra1_optical_frame"
+infra2_frame = camera + "_infra2_optical_frame"
+
+while not rospy.is_shutdown():
+    try:
+        to_color = tf.lookup_transform(color_frame, depth_frame, rospy.Time(0), rospy.Duration(10))
+        break
+    except TransformException as e:
+        rospy.logwarn("Waiting for transform between %s and %s: %s", color_frame, depth_frame, str(e))
+if rospy.is_shutdown():
+    sys.exit(2)
+rospy.loginfo("Got color extrinsics.")
+
+while not rospy.is_shutdown():
+    try:
+        to_infra1 = tf.lookup_transform(infra1_frame, depth_frame, rospy.Time(0), rospy.Duration(10))
+        break
+    except TransformException as e:
+        rospy.logwarn("Waiting for transform between %s and %s", infra1_frame, depth_frame)
+if rospy.is_shutdown():
+    sys.exit(3)
+rospy.loginfo("Got infra1 extrinsics.")
+
+while not rospy.is_shutdown():
+    try:
+        to_infra2 = tf.lookup_transform(infra2_frame, depth_frame, rospy.Time(0), rospy.Duration(10))
+        break
+    except TransformException as e:
+        rospy.logwarn("Waiting for transform between %s and %s", infra2_frame, depth_frame)
+if rospy.is_shutdown():
+    sys.exit(4)
+rospy.loginfo("Got infra2 extrinsics.")
+
+color_pub = rospy.Publisher(camera + "/extrinsics/depth_to_color", Extrinsics, latch=True, queue_size=1)
+infra1_pub = rospy.Publisher(camera + "/extrinsics/depth_to_infra1", Extrinsics, latch=True, queue_size=1)
+infra2_pub = rospy.Publisher(camera + "/extrinsics/depth_to_infra2", Extrinsics, latch=True, queue_size=1)
+
+
+def extrinsics_from_transform(transform):
+    ext = Extrinsics()
+    ext.translation = [transform.translation.x, transform.translation.y, transform.translation.z]
+    rot = transform.rotation
+    ext.rotation = quaternion_matrix((rot.x, rot.y, rot.z, rot.w))[:3, :3].ravel().tolist()
+    return ext
+
+
+color_ext = extrinsics_from_transform(to_color.transform)
+color_ext.header.frame_id = "depth_to_color_extrinsics"
+color_pub.publish(color_ext)
+
+infra1_ext = extrinsics_from_transform(to_infra1.transform)
+infra1_ext.header.frame_id = "depth_to_infra1_extrinsics"
+infra1_pub.publish(infra1_ext)
+
+infra2_ext = extrinsics_from_transform(to_infra2.transform)
+infra2_ext.header.frame_id = "depth_to_infra1_extrinsics"
+infra2_pub.publish(infra2_ext)
+
+try:
+    rospy.spin()
+except:
+    pass

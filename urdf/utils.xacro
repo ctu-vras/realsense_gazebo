@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+
+<!-- 
+SPDX-License-Identifier: BSD-3-Clause
+SPDX-FileCopyrightText: Czech Technical University in Prague
+-->
+
+<root xmlns:xacro="http://www.ros.org/wiki/xacro">
+    <xacro:macro name="gzrs_box_inertial" params="width height depth mass *origin">
+        <inertial>
+            <mass value="${mass}" />
+            <xacro:insert_block name="origin" />
+            <inertia ixx="${1.0/12 * mass * (width * width + height * height)}" ixy="0.0" ixz="0.0"
+                     iyy="${1.0/12 * mass * (height * height + depth * depth)}" iyz="0.0"
+                     izz="${1.0/12 * mass * (width * width + depth * depth)}" />
+        </inertial>
+    </xacro:macro>
+
+    <xacro:macro name="gzrs_default_inertial">
+        <xacro:gzrs_box_inertial mass="1e-3" width="1e-2" height="1e-2" depth="1e-2">
+            <origin />
+        </xacro:gzrs_box_inertial>
+    </xacro:macro>
+
+    <xacro:macro name="gzrs_empty_link" params="name">
+        <link name="${name}">
+            <xacro:gzrs_default_inertial />
+        </link>
+    </xacro:macro>
+
+    <xacro:macro name="gzrs_fixed_joint" params="name parent child *origin lump:=1">
+        <joint name="${name}" type="fixed">
+            <parent link="${parent}"/>
+            <child link="${child}"/>
+            <xacro:insert_block name="origin" />
+        </joint>
+        <xacro:if value="${lump == 0}">
+            <!-- workaround for https://github.com/osrf/sdformat/issues/378 -->
+            <gazebo reference="${name}">
+                <preserveFixedJoint>true</preserveFixedJoint>
+            </gazebo>
+        </xacro:if>
+    </xacro:macro>
+
+    <xacro:macro name="gzrs_optical_frame" params="camera_frame">
+        <xacro:property name="M_PI" value="3.1415926535897931" />
+        <xacro:gzrs_fixed_joint name="${camera_frame}_optical_joint" parent="${camera_frame}_frame" child="${camera_frame}_optical_frame" lump="0">
+            <origin xyz="0 0 0" rpy="${-M_PI/2} 0 ${-M_PI/2}" />
+        </xacro:gzrs_fixed_joint>
+        <xacro:gzrs_empty_link name="${camera_frame}_optical_frame"/>
+    </xacro:macro>
+</root>
