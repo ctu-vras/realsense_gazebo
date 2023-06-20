@@ -95,5 +95,5 @@ infra2_pub.publish(infra2_ext)
 
 try:
     rospy.spin()
-except:
+except Exception:
     pass
